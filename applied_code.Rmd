@@ -62,7 +62,64 @@ Your solution begins here. Hint: use the inversion method as described by @graha
 ```{r, echo=FALSE}
 
 ### Question 1a
-# INSERT CODE
+library("mcmc")
+smoking_dat <- read.csv('smoking.csv')
+#could/should probably extract the relevant statistics- number of smokers with cancer, number of smokers, number of non smokers with cancer, number of non smokers
+
+Ns <- sum(smoking_dat$cigarettes>0)
+Nns <- 36-Ns
+
+Nsc <- sum(smoking_dat$cigarettes>0 & smoking_dat$cancer)
+Nnsc <- sum(smoking_dat$cigarettes==0 & smoking_dat$cancer)
+
+log_posterior <- function(p,q){ #will work with log posterior (need to mention this explicitly) as that seems to be a requirement of metrop
+  #Uniform prior
+  log_post <- Nsc*log(p) + (Ns-Nsc)*log(1-p) + Nnsc*log(q) + (Nns - Nnsc)*log(1-q)
+  return (log_post)
+}
+
+nsmp <- 100000
+params_initial <- c(0.5,0.5) #probably a good place to start
+
+posterior <- metrop(
+  obj= log_posterior,
+  initial = params_initial,
+  nbatch=nsmp,
+)
+
+
+
+
+# Sample the posterior using the Metropolis algorithm.
+
+nsmp <- 1000000
+params_initial <- c(0, 0, 0)
+posterior <- metrop(
+  obj = log_posterior, 
+  initial = params_initial, 
+  nbatch = nsmp, 
+  dataset = dataset)
+
+# Extract posterior samples.
+
+posterior_samples <- as.matrix(posterior$batch)
+
+# Calculate posterior mean and covariance.
+
+param_est <- colMeans(posterior_samples)
+param_covar <- cov(posterior_samples)
+
+# Print out the parameter estimates and the covariance matrix.
+
+cat("Posterior mean:\n")
+param_est
+cat("\n")
+cat("Posterior covariance matrix:\n")
+param_covar
+
+
+
+
 ```
 
 
