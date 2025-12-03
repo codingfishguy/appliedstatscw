@@ -47,24 +47,82 @@ require(kableExtra)
 
 # Question 1
 
-One way the independence assumption could be violated is if the survey participants are in frequent contact with one another. This could mean that even if one participant does not smoke, they may be breathing in smoke from the smokers around them, making the number of cigarettes smoked by others directly affect their rate of lung cancer as well.
+One way the independence assumption could be violated is if the survey
+participants are in frequent contact with one another. This could mean
+that even if one participant does not smoke, they may be breathing in
+smoke from the smokers around them, making the number of cigarettes
+smoked by others directly affect their rate of lung cancer as well.
 
-Another way the independence assumption could be violated is if...
+Another way the independence assumption could be violated is if the
+survey participants are related to one another in some ways (at its
+worst there could be direct relatives). This would mean due to shared
+genetic characteristics, the probability one participant develops cancer
+is not independent of the probability another does.
 
-
+Finally, the independence assumption could be violated by repeated
+sampling. For example, sometimes when filling a form online the website
+could glitch and record one participant's responses twice. These two
+rows are therefore clearly not independent as if one of the rows records
+a participant with cancer, their repeated response would also record a
+participant with cancer.
 
 # Question 2
 
 ### A
 
-Yes, it would be a loss of information, since we now have no way to differentiate between somebody who smokes 10 cigarettes a day versus 1 cigarette a day. 
+Yes, it would be a loss of information, since we now have no way to
+differentiate between somebody who smokes 10 cigarettes a day versus 1
+cigarette a day.
 
 ### B
 
+The first likelihood can be calculated as follows: (assuming $S_i = 1$
+or $0$ depending on whether respondent i is a smoker or not
+respectively)
+
+$$
+\begin{aligned}
+\mathbb{P}(C_{1:N} | p, q, S_{1:N}) &= \prod_{i=1}^n \mathbb{P}(C_i | p, q, S_i) \quad \text{(by assuming independence)} \\
+&= \prod_{i=1}^n p^{S_i C_i} \cdot (1-p)^{S_i (1-C_i)} q^{(1-S_i) C_i} (1-q)^{(1-S_i)(1-C_i)} \\
+&= p^{\sum_{i=1}^n S_i C_i} \cdot (1-p)^{\sum_{i=1}^n S_i (1-C_i)} q^{\sum_{i=1}^n (1-S_i) C_i} \cdot (1-q)^{\sum_{i=1}^n (1-S_i)(1-C_i)} \\
+&= p^{N_{S,C}} (1-p)^{N_S - N_{S,C}} q^{N_{\neg S, C}} (1-q)^{N_{\neg S} - N_{\neg S, C}}
+\end{aligned}
+$$
+
+With the summary statistics the likelihood is:
+
+$$
+\mathbb{P}(N_{S,C}, N_{\neg S, C} \mid p, q, N_S, N_{\neg S}) = \mathbb{P}(N_{S,C} \mid p, N_S) \cdot \mathbb{P}(N_{\neg S, C} \mid q, N_{\neg S})
+$$
+
+Which separates due to the assumption of independence in the trials, so
+the number of non smokers with cancer should not affect the number of
+smokers with cancer in the sample.
+
+Further, the independence between each participant can let us treat the
+distribution as the product of two binomial distributions, leading to
+the following:
+
+$$
+\mathbb{P}(N_{S,C}, N_{\neg S, C} \mid p, q, N_S, N_{\neg S}) = \binom{N_S}{N_{S,C}} p^{N_{S,C}} (1-p)^{N_S - N_{S,C}} \cdot \binom{N_{\neg S}}{N_{\neg S, C}} q^{N_{\neg S, C}} (1-q)^{N_{\neg S} - N_{\neg S, C}}
+$$
+
+If we then find the ratio of the two likelihoods, we find it is
+independent of both $p$ and $q$, so (by 6.4.1 in the notes) the
+statistic $\mathbf{\theta} = (N_{S,C}, N_{\neg S, C})$ is a sufficient
+statistic (so together $N_{S,C}$ and $N_{\neg S, C}$ are jointly
+sufficient statistics).
 
 ### C
 
-@fig-1 clearly demonstrates how the posterior probability of a smoker developing lung cancer is higher than the posterior probability of a non smoker (I sampled from the joint distribution using Markov Chain Monte Carlo techniques). I also calculated the posterior probability ratio for when p>q versus when it is less than or equal to q. This reduced to the Bayes factor, as the uniform distribution for p and q meant the prior probability ratio was equal to 1. The Bayes factor was... which demonstrated high evidence for...
+@fig-1 clearly demonstrates how the posterior probability of a smoker
+developing lung cancer is higher than the posterior probability of a non
+smoker (I sampled from the joint distribution using Markov Chain Monte
+Carlo techniques). I also calculated the posterior probability ratio for
+when p\>q versus when it is less than or equal to q. This reduced to the
+Bayes factor, as the uniform distribution for p and q meant the prior
+probability ratio was equal to 1. The Bayes factor was... which
+demonstrated high evidence for...
 
 ```{r}
 #| echo: false
@@ -133,22 +191,4 @@ ggplot(df, aes(x = value, color = parameter)) +
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### D
