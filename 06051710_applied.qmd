@@ -1,0 +1,154 @@
+---
+title: "Applied Statistics Coursework 2025/2026"
+subtitle: 'MSc in Statistics 2025/26, Imperial College London'
+author: "06051710"
+format:
+  html:
+    toc: true
+    highlight: tango
+    self-contained: true
+    df-print: paged
+  pdf: default
+format-links: false
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style type="text/css">
+h1{
+  font-size: 24pt;
+}
+h2{
+  font-size: 18pt;
+}
+body{
+  font-size: 12pt;
+}
+</style>
+```
+
+```{r setup, include = FALSE, tidy=TRUE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+include_solutions <- TRUE
+```
+
+```{r setup2, include=FALSE, tidy=TRUE}
+set.seed(17)
+require(rmarkdown)
+require(knitr)
+require(kableExtra)
+# Put any library imports and other preamble here.
+```
+
+# Question 1
+
+One way the independence assumption could be violated is if the survey participants are in frequent contact with one another. This could mean that even if one participant does not smoke, they may be breathing in smoke from the smokers around them, making the number of cigarettes smoked by others directly affect their rate of lung cancer as well.
+
+Another way the independence assumption could be violated is if...
+
+
+
+# Question 2
+
+### A
+
+Yes, it would be a loss of information, since we now have no way to differentiate between somebody who smokes 10 cigarettes a day versus 1 cigarette a day. 
+
+### B
+
+
+### C
+
+@fig-1 clearly demonstrates how the posterior probability of a smoker developing lung cancer is higher than the posterior probability of a non smoker (I sampled from the joint distribution using Markov Chain Monte Carlo techniques). I also calculated the posterior probability ratio for when p>q versus when it is less than or equal to q. This reduced to the Bayes factor, as the uniform distribution for p and q meant the prior probability ratio was equal to 1. The Bayes factor was... which demonstrated high evidence for...
+
+```{r}
+#| echo: false
+#| label: fig-1
+#| fig-cap: "Marginal posterior densities for p and q"
+
+########
+#Question 2C
+########
+
+set.seed(17)
+
+library("mcmc")
+smoking_dat <- read.csv('smoking.csv')
+
+#Extracting relevant summary statistics
+Ns <- sum(smoking_dat$cigarettes>0) #Number of smokers
+Nns <- 36-Ns #Number of non-smokers
+Nsc <- sum(smoking_dat$cigarettes>0 & smoking_dat$cancer) #Number of smokers with cancer
+Nnsc <- sum(smoking_dat$cigarettes==0 & smoking_dat$cancer) #Number of non smokers with cancer
+
+
+#will work with log posterior as that is a requirement of metrop (in mcmc library)
+log_posterior <- function(theta){
+  p<-theta[1]
+  q<-theta[2]
+  
+  #The Uniform Prior on  parameters p and q. Essentially the heaviside step function.
+  if (p <= 0 || p >= 1 || q <= 0 || q >= 1) return(-Inf)
+  
+  log_post <- Nsc*log(p) + (Ns-Nsc)*log(1-p) + Nnsc*log(q) + (Nns - Nnsc)*log(1-q)
+  return (log_post)
+}
+
+nsmp <- 100000
+params_initial <- c(0.5,0.5) #started here to demonstrate ignorance of the true distribution
+
+posterior <- metrop(
+  obj= log_posterior,
+  initial = params_initial,
+  nbatch=nsmp
+)
+
+posterior_samples <- as.matrix(posterior$batch)
+colnames(posterior_samples) <- c("p", "q")
+
+#Plotting the marginal posterior densities for p and q
+
+library(ggplot2)
+
+df <- data.frame(
+  value = c(posterior_samples[, "p"], posterior_samples[, "q"]),
+  parameter = rep(c("p", "q"), each = nrow(posterior_samples))
+)
+
+ggplot(df, aes(x = value, color = parameter)) +
+  geom_density(linewidth = 1) +
+  labs(
+    x = "Value",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

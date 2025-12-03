@@ -60,6 +60,7 @@ Some over-arching comments...
 **Part a.**  
 Your solution begins here. Hint: use the inversion method as described by @graham2013stochastic.
 ```{r, echo=FALSE}
+set.seed(17)
 
 ### Question 1a
 library("mcmc")
