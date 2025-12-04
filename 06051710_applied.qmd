@@ -42,8 +42,11 @@ set.seed(17)
 require(rmarkdown)
 require(knitr)
 require(kableExtra)
+require("mcmc")
+require("ggplot2")
 # Put any library imports and other preamble here.
 ```
+
 
 # Question 1
 
@@ -54,17 +57,14 @@ smoke from the smokers around them, making the number of cigarettes
 smoked by others directly affect their rate of lung cancer as well.
 
 Another way the independence assumption could be violated is if the
-survey participants are related to one another in some ways (at its
-worst there could be direct relatives). This would mean due to shared
+survey participants are related to one another in some way (at its
+worst there could be direct relatives in the sample). This would mean due to shared
 genetic characteristics, the probability one participant develops cancer
 is not independent of the probability another does.
 
 Finally, the independence assumption could be violated by repeated
-sampling. For example, sometimes when filling a form online the website
-could glitch and record one participant's responses twice. These two
-rows are therefore clearly not independent as if one of the rows records
-a participant with cancer, their repeated response would also record a
-participant with cancer.
+sampling. For example, sometimes when filling a form online, a glitch could occur and record one participant's responses twice. These two
+rows are therefore clearly not independent, as knowing the outcome of the first response perfectly predicts the outcome of the second.
 
 # Question 2
 
@@ -109,7 +109,7 @@ $$
 
 If we then find the ratio of the two likelihoods, we find it is
 independent of both $p$ and $q$, so (by 6.4.1 in the notes) the
-statistic $\mathbf{\theta} = (N_{S,C}, N_{\neg S, C})$ is a sufficient
+statistic $(N_{S,C}, N_{\neg S, C})$ is a sufficient
 statistic (so together $N_{S,C}$ and $N_{\neg S, C}$ are jointly
 sufficient statistics).
 
@@ -117,12 +117,8 @@ sufficient statistics).
 
 @fig-1 clearly demonstrates how the posterior probability of a smoker
 developing lung cancer is higher than the posterior probability of a non
-smoker (I sampled from the joint distribution using Markov Chain Monte
-Carlo techniques). I also calculated the posterior probability ratio for
-when p\>q versus when it is less than or equal to q. This reduced to the
-Bayes factor, as the uniform distribution for p and q meant the prior
-probability ratio was equal to 1. The Bayes factor was... which
-demonstrated high evidence for...
+smoker (I sampled from the joint distribution of p and q using Markov Chain Monte
+Carlo techniques). Testing the hypothesis that p>q is essentially done in Section D where the competing hypotheses are represented by different models, however, just visually @fig-1 suggests there is high evidence that smoking is linked to lung cancer.
 
 ```{r}
 #| echo: false
@@ -133,16 +129,19 @@ demonstrated high evidence for...
 #Question 2C
 ########
 
-set.seed(17)
-
 library("mcmc")
 smoking_dat <- read.csv('smoking.csv')
 
 #Extracting relevant summary statistics
-Ns <- sum(smoking_dat$cigarettes>0) #Number of smokers
-Nns <- 36-Ns #Number of non-smokers
-Nsc <- sum(smoking_dat$cigarettes>0 & smoking_dat$cancer) #Number of smokers with cancer
-Nnsc <- sum(smoking_dat$cigarettes==0 & smoking_dat$cancer) #Number of non smokers with cancer
+
+#Number of smokers
+Ns <- sum(smoking_dat$cigarettes>0)
+#Number of non-smokers
+Nns <- 36-Ns 
+#Number of smokers with cancer
+Nsc <- sum(smoking_dat$cigarettes>0 & smoking_dat$cancer) 
+#Number of non smokers with cancer
+Nnsc <- sum(smoking_dat$cigarettes==0 & smoking_dat$cancer) 
 
 
 #will work with log posterior as that is a requirement of metrop (in mcmc library)
@@ -150,15 +149,17 @@ log_posterior <- function(theta){
   p<-theta[1]
   q<-theta[2]
   
-  #The Uniform Prior on  parameters p and q. Essentially the heaviside step function.
+  #The Uniform Prior on  parameters p and q.
   if (p <= 0 || p >= 1 || q <= 0 || q >= 1) return(-Inf)
   
+  #The log of the posterior distribution up to normalisation constant
   log_post <- Nsc*log(p) + (Ns-Nsc)*log(1-p) + Nnsc*log(q) + (Nns - Nnsc)*log(1-q)
   return (log_post)
 }
 
 nsmp <- 100000
-params_initial <- c(0.5,0.5) #started here to demonstrate ignorance of the true distribution
+#started here to demonstrate ignorance of the true distribution
+params_initial <- c(0.5,0.5) 
 
 posterior <- metrop(
   obj= log_posterior,
@@ -192,3 +193,18 @@ ggplot(df, aes(x = value, color = parameter)) +
 ```
 
 ### D
+
+
+
+
+
+# Code Appendix {#sec-code-appendix}
+
+```{r ref.label=knitr::all_labels()}
+#| echo: true
+#| eval: false
+#| code-fold: true
+
+```
+
+
