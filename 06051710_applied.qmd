@@ -47,7 +47,6 @@ require("ggplot2")
 # Put any library imports and other preamble here.
 ```
 
-
 # Question 1
 
 One way the independence assumption could be violated is if the survey
@@ -57,24 +56,26 @@ smoke from the smokers around them, making the number of cigarettes
 smoked by others directly affect their rate of lung cancer as well.
 
 Another way the independence assumption could be violated is if the
-survey participants are related to one another in some way (at its
-worst there could be direct relatives in the sample). This would mean due to shared
-genetic characteristics, the probability one participant develops cancer
-is not independent of the probability another does.
+survey participants are related to one another in some way (at its worst
+there could be direct relatives in the sample). This would mean due to
+shared genetic characteristics, the probability one participant develops
+cancer is not independent of the probability another does.
 
 Finally, the independence assumption could be violated by repeated
-sampling. For example, sometimes when filling a form online, a glitch could occur and record one participant's responses twice. These two
-rows are therefore clearly not independent, as knowing the outcome of the first response perfectly predicts the outcome of the second.
+sampling. For example, sometimes when filling a form online, a glitch
+could occur and record one participant's responses twice. These two rows
+are therefore clearly not independent, as knowing the outcome of the
+first response perfectly predicts the outcome of the second.
 
 # Question 2
 
-### A
+### Part a
 
 Yes, it would be a loss of information, since we now have no way to
 differentiate between somebody who smokes 10 cigarettes a day versus 1
 cigarette a day.
 
-### B
+### Part b
 
 The first likelihood can be calculated as follows: (assuming $S_i = 1$
 or $0$ depending on whether respondent i is a smoker or not
@@ -109,16 +110,19 @@ $$
 
 If we then find the ratio of the two likelihoods, we find it is
 independent of both $p$ and $q$, so (by 6.4.1 in the notes) the
-statistic $(N_{S,C}, N_{\neg S, C})$ is a sufficient
-statistic (so together $N_{S,C}$ and $N_{\neg S, C}$ are jointly
-sufficient statistics).
+statistic $(N_{S,C}, N_{\neg S, C})$ is a sufficient statistic (so
+together $N_{S,C}$ and $N_{\neg S, C}$ are jointly sufficient
+statistics).
 
-### C
+### Part c
 
 @fig-1 clearly demonstrates how the posterior probability of a smoker
 developing lung cancer is higher than the posterior probability of a non
-smoker (I sampled from the joint distribution of p and q using Markov Chain Monte
-Carlo techniques). Testing the hypothesis that p>q is essentially done in Section D where the competing hypotheses are represented by different models, however, just visually @fig-1 suggests there is high evidence that smoking is linked to lung cancer.
+smoker (I sampled from the joint distribution of $p$ and $q$ using
+Markov Chain Monte Carlo techniques). Testing the hypothesis that $p>q$
+is essentially done in Section D where the competing hypotheses are
+represented by different models, however, just visually, @fig-1 suggests
+there is high evidence that smoking is linked to lung cancer.
 
 ```{r}
 #| echo: false
@@ -192,8 +196,160 @@ ggplot(df, aes(x = value, color = parameter)) +
 
 ```
 
-### D
+### Part d
 
+I calculated the marginal likelihood for each model by integrating the
+likelihood multiplied by the prior for each model over the parameter
+space. This was done by the following formula:
+
+$\mathbb{P}({N_{s,c}, N_{\neg s, c} } \mid M_i) = \int \mathbb{P}(\boldsymbol{\theta} \mid M_i) \, \mathbb{P}({N_{s,c}, N_{\neg s, c} }\mid \boldsymbol{\theta}, M_i) \mathrm{d}\boldsymbol{\theta}$
+
+where $\boldsymbol{\theta} = (p,q)$, for every model. Additionally, the
+likelihood is the same for each model and is as calculated in part b.
+
+Then for $M_1$ the marginal likelihood became:
+
+$$
+2 \cdot \binom{N_S}{N_{S,c}} \cdot \binom{N_{\neg S}}{N_{\neg S,c}}
+\cdot \int_{0}^{1} q^{\,N_{\neg S,c}} (1-q)^{\,N_{\neg S}-N_{\neg S,c}}
+\left( \int_{q}^{1} \rho^{\,N_{S,c}} (1-\rho)^{\,N_{S}-N_{S,c}} \, d\rho \right)
+\, dq
+$$
+
+where the prior distribution specifying $p>q$ was incorporated into the
+limits of the inner integral.
+
+For $M_2$ I found the marginal likelihood to be:
+
+$$
+\binom{N_S}{N_{S,c}} \binom{N_{\neg S}}{N_{\neg S,c}}
+\int_{0}^{1}
+q^{\,N_{\neg S,c}} (1-q)^{\,N_{\neg S}-N_{\neg S,c}}
+\cdot
+q^{\,N_{S,c}} (1-q)^{\,N_S-N_{S,c}}
+\, dq
+$$ where the prior was incorporated by taking $p=q$ in the inner
+integral (with respect to $p$) and then finding the remaining dirac
+function integrated to 1.
+
+Finally, for $M_3$ I found the marginal likelihood in a similar way to
+$M_1$ to be:
+
+$$
+2 \cdot \binom{N_S}{N_{S,c}} \cdot \binom{N_{\neg S}}{N_{\neg S,c}}
+\cdot \int_{0}^{1} q^{\,N_{\neg S,c}} (1-q)^{\,N_{\neg S}-N_{\neg S,c}}
+\left( \int_{0}^{q} \rho^{\,N_{S,c}} (1-\rho)^{\,N_{S}-N_{S,c}} \, d\rho \right)
+\, dq
+$$ Again, representing the prior information through the limits of the
+inner integral.
+
+I used numerical integration (specifically the integrate function in R)
+to solve for each likelihood. This led to the following likelihoods (for
+models 1,2 and 3 respectively).
+
+```{r}
+#| echo: false
+
+#########
+#Question 2d
+#########
+
+#remember to remove the following block before uploading
+smoking_dat <- read.csv('smoking.csv')
+
+#Extracting relevant summary statistics
+
+#Number of smokers
+Ns <- sum(smoking_dat$cigarettes>0)
+#Number of non-smokers
+Nns <- 36-Ns 
+#Number of smokers with cancer
+Nsc <- sum(smoking_dat$cigarettes>0 & smoking_dat$cancer) 
+#Number of non smokers with cancer
+Nnsc <- sum(smoking_dat$cigarettes==0 & smoking_dat$cancer) 
+
+
+#Defining f so I can integrate numerically
+f <- function(p,q){
+  #the normalisation constants are taken outside the integral
+  return (p^(Nsc)*(1-p)^(Ns-Nsc)*q^(Nnsc)*(1-q)^(Nns-Nnsc))
+}
+
+#Model 1
+inner_integral1 <- Vectorize(function(q){
+  integrate(function(p) f(p, q), lower = q, upper = 1)$value
+})
+
+outer_integral1 <- integrate(inner_integral1, lower = 0, upper = 1)
+
+m1e <- 2*choose(Ns, Nsc)*choose(Nns, Nnsc)*outer_integral1$value
+
+
+
+
+#Model 2
+
+integral2 <- integrate(function(q){q^(Nsc+Nnsc)*(1-q)^(36-Nsc-Nnsc)}, lower=0, upper=1 )
+m2e <- choose(Ns, Nsc)*choose(Nns, Nnsc)*integral2$value
+
+
+
+
+#Model 3
+inner_integral3 <- Vectorize(function(q){
+  integrate(function(p) f(p, q), lower = 0, upper = q)$value
+})
+
+outer_integral3 <- integrate(inner_integral3, lower = 0, upper = 1)
+m3e <- 2*choose(Ns, Nsc)*choose(Nns, Nnsc)*outer_integral3$value
+
+print(c(m1e, m2e, m3e))
+
+```
+
+To assess the model evidence, I used the posterior odds ratio for each
+model. Assuming each model is equally likely a priori, this reduced to
+the Bayes factor, which was the ratio of the marginal likelihoods just
+calculated.
+
+```{r}
+#Bayes Factor
+print(m1e/m2e)
+print(m1e/m3e)
+print(m2e/m3e)
+```
+
+Per the Jeffreys scale the evidence for model 1 (i.e. that smoking is
+linked to lung cancer) is overwhelming compared to alternative models.
+However, even acknowledging that the cutoff points in Jeffreys scale are
+largely arbitrary, these ratios are so much larger than the cutoff
+points (where \>10 suggests strong evidence), that this data suggests
+very strong evidence for the claim smoking is linked to lung cancer.
+
+# Question 3
+
+### Part a
+
+### Part b
+
+Yes, this is a problem in principle, as the sampling distribution should
+represent the true data generating process. If a negative value is
+impossible in the true data generating process this should therefore be
+represented in the sampling distribution.
+
+However, given our data, this should not be a major problem in practice
+as the model will likely incorporate the fact that no negative values
+were recorded through its shape, bias and noise parameters.
+
+### Part c
+
+# Question 4
+
+### Part a
+```{r}
+#smoking_dat is our dataset
+
+```
 
 
 
@@ -206,5 +362,3 @@ ggplot(df, aes(x = value, color = parameter)) +
 #| code-fold: true
 
 ```
-
-
