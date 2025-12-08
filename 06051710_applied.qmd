@@ -109,10 +109,9 @@ $$
 $$
 
 If we then find the ratio of the two likelihoods, we find it is
-independent of both $p$ and $q$, so (by 6.4.1 in the notes) the
-statistic $(N_{S,C}, N_{\neg S, C})$ is a sufficient statistic (so
-together $N_{S,C}$ and $N_{\neg S, C}$ are jointly sufficient
-statistics).
+independent of both $p$ and $q$, so the statistic
+$(N_{S,C}, N_{\neg S, C})$ is a sufficient statistic (so together
+$N_{S,C}$ and $N_{\neg S, C}$ are jointly sufficient statistics).
 
 ### Part c
 
@@ -389,43 +388,83 @@ were recorded through its shape, bias and noise parameters.
 
 ### Part c
 
-The likelihood for the data is going to be normaliseable if the original
-density is normaliseable, which the prior restrictions enforce; if
-$\beta > 2$, then by part a the original density should be
-normaliseable, so the resultant likelihood will also be normaliseable.
-
 ### Part d
 
 ```{r}
 #| echo: false
 
-log_posterior <- function(theta){
+library("mcmc")
+
+calib_dat <- read.csv('calibration.csv', header=FALSE)
+calib <- calib_dat[[1]]
+
+log_posterior_3d <- function(theta){
   delta <- theta[1]
   sigma <- theta[2]
   beta <- theta[3]
   
   #Heaviside step function in the prior
-  if (delta <=0 || B<=2) return (-Inf)
+  if (sigma <=0 || beta<=2) return (-Inf)
   
+  bigsum <- 0 
+  for (i in 1:40){
+    bigsum <- bigsum -beta*log(1+(calib[i]-(3.44+delta))^2/sigma^2)
+  }
   
+  log_post <- -2*log(beta) + 40*log(gamma(beta)) - 40*log(sqrt(pi*sigma^2)*gamma(beta-0.5)) + bigsum
   
-}
-
-
-
-
-log_posterior <- function(theta){
-  p<-theta[1]
-  q<-theta[2]
-  
-  #The Uniform Prior on  parameters p and q.
-  if (p <= 0 || p >= 1 || q <= 0 || q >= 1) return(-Inf)
-  
-  #The log of the posterior distribution up to normalisation constant
-  log_post <- Nsc*log(p) + (Ns-Nsc)*log(1-p) + Nnsc*log(q) + (Nns - Nnsc)*log(1-q)
   return (log_post)
 }
+
+nsmp <- 100000
+params_initial_3d <- c(0.5, 1, 5) #explain why you chose this 
+
+posterior_3d <- metrop(
+  obj= log_posterior_3d,
+  initial = params_initial_3d,
+  nbatch=nsmp
+)
+
+posterior_samples3d <- as.matrix(posterior_3d$batch)
+colnames(posterior_samples3d) <- c("delta", "sigma", "beta")
+
+# Posterior samples
+delta_samples <- posterior_samples3d[, "delta"]
+sigma_samples <- posterior_samples3d[, "sigma"]
+beta_samples  <- posterior_samples3d[, "beta"]
+
+# Open a graphics window with 3 panels (optional)
+par(mfrow=c(2,2))
+
+# Plot marginal density for delta
+plot(density(delta_samples),
+     main = "Posterior Density of delta",
+     xlab = "delta")
+
+# Plot marginal density for sigma
+plot(density(sigma_samples),
+     main = "Posterior Density of sigma",
+     xlab = "sigma")
+
+# Plot marginal density for beta
+plot(density(beta_samples),
+     main = "Posterior Density of beta",
+     xlab = "beta")
+
 ```
+
+```{r}
+plot(
+  posterior_samples3d[, "delta"],
+  posterior_samples3d[, "beta"],
+  xlab = "delta",
+  ylab = "beta",
+  main = "Joint Posterior Samples: delta vs beta",
+  pch = 16, cex = 0.5
+)
+
+```
+
 
 # Question 4
 
