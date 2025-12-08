@@ -330,6 +330,52 @@ very strong evidence for the claim smoking is linked to lung cancer.
 
 ### Part a
 
+To answer this question, I first noticed that the distribution was
+proportional to a location-scale version of a student's t distribution
+with location $\mu$, scale $s^2$, and degrees of freedom $\nu$ (below):
+
+$$
+f(x) \propto \left( 1 + \frac{(x-\mu)^2}{\nu s^2} \right)^{-(\nu+1)/2}
+$$
+
+Specifically, the density is proportional to a student's t in the
+following form:
+
+$$
+P(L \mid L^*, \Delta, \sigma, \beta)
+\propto
+\left\{
+1 +
+\frac{\bigl(L - (L^*+\Delta)\bigr)^2}{(2\beta-1)}
+\left(
+\frac{\sigma}{\sqrt{2\beta-1}}
+\right)^{-2}
+\right\}^{-\beta}
+$$
+
+$$
+\propto \;\text{Student}\!\left(
+\nu = 2\beta - 1,\;
+\mu = L^* + \Delta,\;
+s = \frac{\sigma}{\sqrt{2\beta-1}}
+\right)
+$$
+
+Then, using the known properties of a t distribution, I then knew for i)
+the distribution to be normaliseable, $\nu > 0$. This restricted
+$\beta > \frac{1}{2}$
+
+For ii) the distribution to have a defined mean, $\nu > 1$. This
+restricted $\beta > 1$.
+
+Finally, for iii) the distribution to have a defined variance,
+$\nu > 2$. This restricted $\beta > \frac{3}{2}$.
+
+All of these criteria are necessary for the distribution to be a valid
+noise model, as to be a useful model for data variation, it would need a
+defined variance (which necessitates a defined mean, and a normaliseable
+distribution).
+
 ### Part b
 
 Yes, this is a problem in principle, as the sampling distribution should
@@ -343,16 +389,53 @@ were recorded through its shape, bias and noise parameters.
 
 ### Part c
 
+The likelihood for the data is going to be normaliseable if the original
+density is normaliseable, which the prior restrictions enforce; if
+$\beta > 2$, then by part a the original density should be
+normaliseable, so the resultant likelihood will also be normaliseable.
+
+### Part d
+
+```{r}
+#| echo: false
+
+log_posterior <- function(theta){
+  delta <- theta[1]
+  sigma <- theta[2]
+  beta <- theta[3]
+  
+  #Heaviside step function in the prior
+  if (delta <=0 || B<=2) return (-Inf)
+  
+  
+  
+}
+
+
+
+
+log_posterior <- function(theta){
+  p<-theta[1]
+  q<-theta[2]
+  
+  #The Uniform Prior on  parameters p and q.
+  if (p <= 0 || p >= 1 || q <= 0 || q >= 1) return(-Inf)
+  
+  #The log of the posterior distribution up to normalisation constant
+  log_post <- Nsc*log(p) + (Ns-Nsc)*log(1-p) + Nnsc*log(q) + (Nns - Nnsc)*log(1-q)
+  return (log_post)
+}
+```
+
 # Question 4
 
 ### Part a
+
 ```{r}
+
 #smoking_dat is our dataset
 
 ```
-
-
-
 
 # Code Appendix {#sec-code-appendix}
 
