@@ -38,7 +38,7 @@ include_solutions <- TRUE
 ```
 
 ```{r setup2, include=FALSE, tidy=TRUE}
-set.seed(17)
+set.seed(2)
 require(rmarkdown)
 require(knitr)
 require(kableExtra)
@@ -388,11 +388,40 @@ were recorded through its shape, bias and noise parameters.
 
 ### Part c
 
+The posterior distribution obtained is valid, from below. My
+distribution for L comes from the fact it is proportional to a student's
+t distribution (part a), which let me normalise it.
+
+$$
+\begin{aligned}
+P(\Delta, \sigma, \beta | L_{1:M}, K) &\propto \pi(\Delta, \sigma, \beta) P(L_{1:M} | \Delta, \sigma, \beta) \\
+\\
+P(L | \Delta, \sigma, \beta) &= \frac{\Gamma(\beta)}{\Gamma(\beta - \frac{1}{2}) \sqrt{\pi \sigma^2}} \cdot \left( 1 + \frac{(L - (L^* + \Delta))^2}{\sigma^2} \right)^{-\beta} \\
+\\
+\text{So } \quad P(L_{1:M} | \Delta, \sigma, \beta) &= \left( \frac{\Gamma(\beta)}{\Gamma(\beta - \frac{1}{2}) \sqrt{\pi \sigma^2}} \right)^M \cdot \prod_{i=1}^M \left( 1 + \frac{(L_i - (L^* + \Delta))^2}{\sigma^2} \right)^{-\beta} \\
+\\
+\text{So } \quad \pi(\Delta, \sigma, \beta | L_{1:M}, K) &\propto \Theta(\sigma) \Theta(\beta - 2) \cdot \left( \frac{\Gamma(\beta)}{\Gamma(\beta - \frac{1}{2}) \sqrt{\pi \sigma^2}} \right)^M \cdot \prod_{i=1}^M \left( 1 + \frac{(L_i - (L^* + \Delta))^2}{\sigma^2} \right)^{-\beta}
+\end{aligned}
+$$
+
+Checking normalisation:
+
+$$
+\int_{-\infty}^{\infty} d\Delta \int_{0}^{\infty} d\sigma \int_{2}^{\infty} d\beta \left( \frac{\Gamma(\beta)}{\Gamma(\beta - \frac{1}{2}) \sqrt{\pi \sigma^2}} \right)^M \cdot \prod_{i=1}^M \left( 1 + \frac{(L_i - (L^* + \Delta))^2}{\sigma^2} \right)^{-\beta}
+$$
+
+This integral is normaliseable, as the integrand decays fast with high
+$\beta, \Delta$ or $\sigma$.
+
 ### Part d
+
+I used metrop to sample from the posterior distribution of the parameters. @fig-2 shows the joint distribution of $\delta$ and $\beta$, and @fig-3 and @fig-4 show the marginal distributions of all the parameters. The marginal distribution of $\delta$ suggests there is evidence for systematic bias in the measurements; there is very little density around 0 in its distribution. Additionally, the distribution of $\beta$, suggests there is evidence for a heavy tailed distribution; $\beta$ seems to have a lot of its probability mass around lower values, which corresponds to heavier tails. 
+
+Hmm but maybe I should be considering beta and delta together as for there to be systematic bias AND heavy tails suggests there's a problem, if it's just one or the other it might be ok
+
 
 ```{r}
 #| echo: false
-
 library("mcmc")
 
 calib_dat <- read.csv('calibration.csv', header=FALSE)
@@ -417,7 +446,7 @@ log_posterior_3d <- function(theta){
 }
 
 nsmp <- 100000
-params_initial_3d <- c(0.5, 1, 5) #explain why you chose this 
+params_initial_3d <- c(0.5, 0.5, 5) 
 
 posterior_3d <- metrop(
   obj= log_posterior_3d,
@@ -433,37 +462,55 @@ delta_samples <- posterior_samples3d[, "delta"]
 sigma_samples <- posterior_samples3d[, "sigma"]
 beta_samples  <- posterior_samples3d[, "beta"]
 
-# Open a graphics window with 3 panels (optional)
-par(mfrow=c(2,2))
+nsmp_burnin <- 1000
 
-# Plot marginal density for delta
-plot(density(delta_samples),
-     main = "Posterior Density of delta",
-     xlab = "delta")
-
-# Plot marginal density for sigma
-plot(density(sigma_samples),
-     main = "Posterior Density of sigma",
-     xlab = "sigma")
-
-# Plot marginal density for beta
-plot(density(beta_samples),
-     main = "Posterior Density of beta",
-     xlab = "beta")
-
+delta_samples <- delta_samples[nsmp_burnin:nsmp]
+sigma_samples <- sigma_samples[nsmp_burnin:nsmp]
+beta_samples <- beta_samples[nsmp_burnin:nsmp]
 ```
 
 ```{r}
-plot(
-  posterior_samples3d[, "delta"],
-  posterior_samples3d[, "beta"],
-  xlab = "delta",
-  ylab = "beta",
-  main = "Joint Posterior Samples: delta vs beta",
-  pch = 16, cex = 0.5
-)
+#| echo: false
+#| label: fig-2
+#| fig-cap: "Joint Posterior density for beta and delta"
+
+#going to figure out how to make this a contour plot
+#Joint posterior in (delta, beta) as a scatter plot
+plot(x = delta_samples, y = beta_samples, xlim = range(delta_samples), ylim = range(beta_samples), 
+  xlab = "delta", ylab = "beta", pch='.')
+```
+
+```{r}
+#| echo: false
+#| label: fig-3
+#| fig-cap: "Marginal Posterior Densities for delta and beta"
+
+
+par(mfrow=c(1,2))
+
+nbin <- 80
+breaks1 <- seq(from = min(delta_samples), to = max(delta_samples), length.out = nbin)
+hist(delta_samples, xlim = range(delta_samples), breaks = breaks1, main = "", freq = FALSE,
+  col = "white",
+  xlab = "delta", ylab = "posterior density")
+
+breaks2 <- seq(from = min(beta_samples), to = max(beta_samples), length.out = nbin)
+hist(beta_samples, xlim=range(beta_samples), breaks=breaks2, main="", freq=FALSE,
+    xlab="beta", ylab= "posterior density")
 
 ```
+```{r}
+#| echo: false
+#| label: fig-4
+#| fig-cap: "Marginal Posterior Density for Sigma"
+
+breaks3 <- seq(from = min(sigma_samples), to = max(sigma_samples), length.out = nbin)
+hist(sigma_samples, xlim=range(sigma_samples), breaks=breaks3, main="", freq=FALSE,
+    xlab="sigma", ylab= "posterior density")
+```
+
+
+
 
 
 # Question 4
@@ -471,9 +518,28 @@ plot(
 ### Part a
 
 ```{r}
-
 #smoking_dat is our dataset
 
+smoking_dat <- read.csv('smoking.csv')
+
+formula <- "capacity~log(age)+log(weight)+cigarettes"
+smoking_dat$weights <- 1/ (0.3^2)
+
+fit <- glm(formula, data=smoking_dat, weights= weights)
+
+# Extract the fit and covariance.
+
+param_est <- as.numeric(fit$coefficients)
+param_covar <- summary(fit)$cov.unscaled
+
+# Print out the parameter estimates and the covariance matrix (implicitly
+# assuming uniform improper priors).
+
+cat("Posterior mean:\n")
+param_est
+cat("\n")
+cat("Posterior covariance matrix:\n")
+param_covar
 ```
 
 # Code Appendix {#sec-code-appendix}
